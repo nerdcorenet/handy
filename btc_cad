@@ -1,0 +1,64 @@
+#!/bin/bash
+#
+# Convert BTC and CAD values. Direction of the conversion
+# depends on the invokation:
+#
+#   btc_cad: Convert a BTC value to CAD
+#   cad_btc: Convert a CAD value to BTC
+#
+# When converting to CAD, 2 decimal points of precision are
+# used (representing $0.01)
+# When converting to BTC, 8 decimal points of precision are
+# used (respresenting 1 Satoshi unit)
+#
+# Copyright Mike Mallett <mike@nerdcore.net> (c) 2015
+#
+# This software is PUBLIC DOMAIN. For jurisdictions which do not
+# recognize dedication to the public domain, this software is
+# provided under the terms of the Creative Commons Zero (CC0)
+# licence: https://wiki.creativecommons.org/wiki/CC0
+
+if [ "${1}" ]; then
+  AMOUNT=${1}
+else
+  read AMOUNT
+fi
+
+ME=`basename ${0}`
+FROM=`echo $ME | awk -F_ '{print $1}'`
+TO=`echo $ME | awk -F_ '{print $2}'`
+
+if [ -x `which bc` ]; then
+  CALC=`which bc`
+elif [ -x `which dc` ]; then
+  CALC=`which dc`
+else
+  CALC=
+fi
+
+if [ "${FROM}" == "btc" ] && [ "${TO}" == "cad" ]; then
+  PRICE=`curl -s 'https://api.quadrigacx.com/v2/ticker' | jshon -e vwap | sed 's/"//g'`
+  CALC_OP='*'
+  PRECISION=2 # Cents
+elif [ "${FROM}" == "cad" ] && [ "${TO}" == "btc" ]; then
+  PRICE=`curl -s 'https://api.quadrigacx.com/v2/ticker' | jshon -e vwap | sed 's/"//g'`
+  CALC_OP='/'
+  PRECISION=8 # Satoshis
+else
+  echo "Unknown currency conversion requested: ${FROM} -> ${TO}"
+  exit
+fi
+
+case `basename ${CALC}` in
+bc)
+  echo "scale=${PRECISION}; ${AMOUNT} ${CALC_OP} ${PRICE}" | ${CALC} -l
+  ;;
+dc)
+  echo "${PRECISION}k ${AMOUNT} ${PRICE} ${CALC_OP} p" | ${CALC}
+  ;;
+*)
+  echo "Could not find a compatible calculator program {bc,dc}."
+  echo "Amount: ${AMOUNT}"
+  echo "Price: ${PRICE}"
+  ;;
+esac
