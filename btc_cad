@@ -18,6 +18,15 @@
 # provided under the terms of the Creative Commons Zero (CC0)
 # licence: https://wiki.creativecommons.org/wiki/CC0
 
+if [ ! `which jshon` ]; then
+    echo "ERROR: $0 requires the \`jshon\` executable."
+    exit
+fi
+if [ ! `which curl` ]; then
+    echo "ERROR: $0 requires the \`curl\` executable."
+    exit
+fi
+
 if [ "${1}" ]; then
   AMOUNT=${1}
 else
