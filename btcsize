@@ -1,13 +1,95 @@
 #!/bin/bash
+#
+# *size - A script to display blockchain size information
+#
+# Can be linked or copied to different names such as:
+#   btcsize = Bitcoin
+#   litesize = Litecoin
+#   dogesize = Dogecoin
+#   etc...
+#
+# Requires: echo, which, awk, sed, basename, bc, and also
+# b2flop [https://github.com/nerdcorenet/bits-and-bytes]
+#
+# Copyright Mike Mallett <mike@nerdcore.net> (c) 2022
+#
+# THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
 
-if [ "$(basename $0)" = "dogesize" ]; then
-    BLOCKS_DIR="/mnt/chains/dogecoin/blocks"
+# This is where the chain directories are located
+PARENT_DIR="/mnt/chains"
+
+check_bin() {
+    which $1 > /dev/null
+    if [ $? != 0 ]; then
+	echo "ERROR: $1 is not installed"
+	exit 1
+    fi
+}
+FIXES=(" " "k" "M" "G" "T" "P" "E" "Z" "Y")
+THE_BSIZE=""
+bsize(){
+    SUB=$1
+    FIX=0
+    while [ ${SUB} -gt 1024 ]; do
+	SUB=$((SUB/1024))
+	((FIX++))
+    done
+    THE_BSIZE="${SUB} ${FIXES[${FIX}]}iB"
+    return ${FIX}
+}
+
+IAM="$(basename $0)"
+BIN_PREFIX="$(echo ${IAM} | sed 's/size$//')"
+
+if [ "${BIN_PREFIX}" = "grlc" ]; then
+    PREFIX="grlc"
+    CHAIN_NAME="Garlicoin"
+elif [ "${BIN_PREFIX}" = "lite" ] || [ "${BIN_PREFIX}" = "ltc" ]; then
+    PREFIX="lite"
+    CHAIN_NAME="Litecoin (LTC)"
+elif [ "${BIN_PREFIX}" = "vert" ] || [ "${BIN_PREFIX}" = "vtc" ]; then
+    PREFIX="vert"
+    CHAIN_NAME="Vertcoin"
+elif [ "${BIN_PREFIX}" = "doge" ]; then
+    PREFIX="doge"
     CHAIN_NAME="Dogecoin"
-    if [ -z "$(dogecoin-cli getblockcount 2>/dev/null)" ]; then echo -e "WARNING: dogecoind not running, size may be out of date!\n"; fi
+elif [ "${BIN_PREFIX}" = "roger" ]; then
+    PREFIX="theholyroger"
+    CHAIN_NAME="TheHolyRoger"
 else
-    BLOCKS_DIR="/mnt/chains/bitcoin/blocks"
+    PREFIX="bit"
     CHAIN_NAME="BTC"
-    if [ -z "$(bitcoin-cli getblockcount 2>/dev/null)" ]; then echo -e "WARNING: bitcoind not running, size may be out of date!\n"; fi
+fi
+BLOCKS_DIR="${PARENT_DIR}/${PREFIX}coin/blocks"
+BIN_DAEMON="${PREFIX}coind"
+BIN_CLI="${PREFIX}coin-cli"
+
+for BIN in "which awk sed basename b2flop ${BIN_DAEMON} ${BIN_CLI}"; do
+    check_bin $BIN
+done
+
+HEIGHT="$(${BIN_CLI} getblockcount 2>/dev/null)"
+
+if [ -z "${HEIGHT}" ]; then
+    echo -e "WARNING: ${BIN_DAEMON} not running, size may be out of date!\n";
+else
+    echo -n "At block #${HEIGHT} the "
 fi
 
-b2flop $(for B in $(du -sb ${BLOCKS_DIR}/blk*.dat | awk '{print $1}'); do echo "${B} + p"; done | dc 2>/dev/null | tail -n1) | awk -v chain=${CHAIN_NAME} '{m=$7/1000;print "The " chain " blockchain is " $1 " bytes long, requiring " $4 " DOS-format 3.5\" 1.44MB floppy disks to store, which would form a stack " m " metres tall."}'
+TOTAL_SIZE=0
+for SIZE in $(find ${BLOCKS_DIR} -name "blk*.dat" -exec stat -c %s {} \;); do
+    TOTAL_SIZE=$((${TOTAL_SIZE}+${SIZE}))
+done
+
+read -r FLOPPIES MILLI <<<$(b2flop ${TOTAL_SIZE} | awk '{print $4 " "$7}')
+METRES=$(echo "scale=1; ${MILLI}/1000" | bc)
+
+bsize ${TOTAL_SIZE}
+
+echo "${CHAIN_NAME} blockchain is ${TOTAL_SIZE} bytes (${THE_BSIZE}) long, requiring ${FLOPPIES} DOS-format 3.5\" 1.44MB floppy disks to store, which would form a stack ${METRES} metres tall."
