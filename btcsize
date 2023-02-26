@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if [ "$(basename $0)" = "dogesize" ]; then
+    BLOCKS_DIR="/mnt/chains/dogecoin/blocks"
+    CHAIN_NAME="Dogecoin"
+    if [ -z "$(dogecoin-cli getblockcount 2>/dev/null)" ]; then echo -e "WARNING: dogecoind not running, size may be out of date!\n"; fi
+else
+    BLOCKS_DIR="/mnt/chains/bitcoin/blocks"
+    CHAIN_NAME="BTC"
+    if [ -z "$(bitcoin-cli getblockcount 2>/dev/null)" ]; then echo -e "WARNING: bitcoind not running, size may be out of date!\n"; fi
+fi
+
+b2flop $(for B in $(du -sb ${BLOCKS_DIR}/blk*.dat | awk '{print $1}'); do echo "${B} + p"; done | dc 2>/dev/null | tail -n1) | awk -v chain=${CHAIN_NAME} '{m=$7/1000;print "The " chain " blockchain is " $1 " bytes long, requiring " $4 " DOS-format 3.5\" 1.44MB floppy disks to store, which would form a stack " m " metres tall."}'
