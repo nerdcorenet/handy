@@ -18,7 +18,7 @@ VOICE=""
 # Check for a nicer voice than the default
 for V in $(espeak --voices=en | awk '{print $5}'); do
     if [ "$V" == "mb/mb-en1" ]; then
-        VOICE="-v mv/mb-en1"
+        VOICE="-v mb/mb-en1"
     fi
 done
 if [ -z "$V" ]; then
