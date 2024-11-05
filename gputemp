@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [ ! -x "$(which nvidia-smi)" ]; then
+    echo "ERROR: Could not execute nvidia-smi. This tool is only for nv GPUs, sorry. :("
+    exit 1
+fi
+
+if [ -n "$1" ]; then
+    GPU_ID="-i $1"
+else
+    GPU_ID=""
+fi
+
+nvidia-smi ${GPU_ID} -l 1 --format=csv --query-gpu=index,uuid,temperature.gpu,power.draw,fan.speed,name
