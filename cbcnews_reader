@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# Sanity checks
+if [ ! -x "$(which espeak)" ]; then
+    echo "ERROR: $0 requires espeak CLI tool. Install espeak or espeak-ng."
+    exit 1
+fi
+if [ ! -x "$(which xmllint)" ]; then
+    echo "ERROR: $0 requires xmllint. Install libxml2-utils."
+    exit 1
+fi
+if [ ! -x "$(which grep)" ] || [ ! -x "$(which cut)" ] || [ ! -x "$(which awk)" ]; then
+    echo "ERROR: $0 requires grep and cut and awk. What is this, Windooz??"
+    exit 1
+fi
+
+VOICE=""
+# Check for a nicer voice than the default
+for V in $(espeak --voices=en | awk '{print $5}'); do
+    if [ "$V" == "mb/mb-en1" ]; then
+        VOICE="-v mv/mb-en1"
+    fi
+done
+if [ -z "$V" ]; then
+    echo "Could not locate voice mb/mb-en1, using default espeak voice instead."
+    echo "Consider installing mbrola-en1 voice; It is better."
+    echo
+fi
+
+# Default RSS source
+NAME="CBC Top"
+URL="https://www.cbc.ca/webfeed/rss/rss-topstories"
+DUMP="CBC | Top Stories News"
+
+# Override default source if $0 is different
+if [ "$(basename $0)" == "worldnews" ]; then
+    NAME="CBC World News"
+    URL="https://www.cbc.ca/webfeed/rss/rss-world"
+    DUMP="CBC | World News"
+fi
+
+echo
+
+show_and_say() {
+    echo "$1"
+    sleep 1
+    espeak -s 122 -g 1 -v mb/mb-en1 "$1"
+    echo
+}
+
+HEAD="These are the $NAME headlines for $(date +"%A %B %_d %Y at %l %p")"
+
+show_and_say "$HEAD"
+
+RSS="$(curl $URL 2>/dev/null)"
+XML="$(echo $RSS | xmllint -xpath '//title' - | grep -v "$DUMP" | cut -c 17- | awk -F']]' '{print $1}')"
+echo "$XML" | while IFS= read -r NEWS; do
+    show_and_say "$NEWS"
+done
