@@ -1,0 +1,33 @@
+#!/bin/bash
+# Play one random video file within a directory (default "./")
+
+GUESS_PLAYERS="vlc mplayer mpv"
+PLAYER=""
+# Try to find a media player from these known ones
+for P in ${GUESS_PLAYERS}; do
+    if [ -x "$(which $P)" ]; then
+        PLAYER="${P}"
+        break
+    fi
+done
+if [ -z "${PLAYER}" ]; then
+    echo "ERROR: Could not find a known media player installed."
+    echo "Tried: ${GUESS_PLAYERS}"
+    exit 1
+fi    
+
+IFS=$'\n'
+
+if [ -d "$1" ]; then
+  cd "$1"
+fi
+
+for FILE in $(find . -type f | sort -R); do
+  MIME=$(file --mime-type ${FILE} | awk -F': ' '{print $2}' | awk -F/ '{print $1}')
+  if [ "${MIME}" = "video" ]; then
+    break
+  fi
+done
+
+echo "${FILE}"
+vlc ${FILE}
