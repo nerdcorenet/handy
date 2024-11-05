@@ -44,7 +44,7 @@ echo
 show_and_say() {
     echo "$1"
     sleep 1
-    espeak -s 122 -g 1 -v mb/mb-en1 "$1"
+    espeak -s 122 -g 1 $VOICE "$1"
     echo
 }
 
