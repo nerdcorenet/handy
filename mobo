@@ -1,0 +1,18 @@
+#!/bin/bash
+
+if [ ! -d "/sys/devices/virtual/dmi/id" ]; then
+  if [ ${EUID} != 0 ]; then
+    echo "ERROR: Unable to locate directory /sys/devices/virtual/dmi/id and not running as root."
+    exit 1
+  elif [ -z "$(which dmidecode)" ]; then
+    echo "ERROR: Unable to locate dmidecode."
+    exit 2
+  fi
+  dmidecode -t 2
+else
+  for S in $(ls /sys/devices/virtual/dmi/id/board_*); do
+    B=$(basename $S)
+    echo -n "$B: "
+    cat $S
+  done
+fi
