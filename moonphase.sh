@@ -44,14 +44,23 @@ elif [ -x "$(which dc 2>/dev/null)" ]; then
     CALC="dc"
 else
     echo "ERROR: Could not execute \`bc\` nor \`dc\`, needed for the maths."
-    exit 1
+    exit 2
 fi
 
+while [ "$#" -gt 0 ]; do
+    case $1 in
+        -h|--help) echo "Usage: $0 [-h|--help] [-m] [DATE]\n\tPrints moon phase for [DATE] or today if no date specified.\n\n-m\tPrints only the unicode character representing the phase."; exit 1 ;;
+	-m) MINOUT=1 ;;
+        *) TARGET="$1" ;;
+    esac
+    shift
+done
+
 NOW=$(date +%s)
-if [ -n "$1" ]; then
-    TARGET="$(date +%s --date="$1")"
+if [ -n "${TARGET}" ]; then
+    TARGET="$(date +%s --date="${TARGET}")"
     if [ $? -ne 0 ]; then
-	exit 2
+	exit 3
     fi
 else
     TARGET=${NOW}
@@ -103,4 +112,8 @@ else
     PHASENAME="waning crescent"
     MOONCHAR="🌘"
 fi
-echo "On ${FULLDATE} the phase ${WHEN} a ${PHASENAME} moon: ${MOONCHAR}"
+if [ "${MINOUT}" = "1" ]; then
+    echo -n "${MOONCHAR}"
+else
+    echo "On ${FULLDATE} the phase ${WHEN} a ${PHASENAME} moon: ${MOONCHAR}"
+fi
