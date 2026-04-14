@@ -68,10 +68,13 @@ SECDIFF="$((${TARGET}-${REFDATE}))"
 
 if [ "${CALC}" = "bc" ]; then
     REMAINDER="$(echo "(${SECDIFF} / 86400) / ${SYNOD}" | bc -l | awk -F. '{print $2}')"
-    PHASE="$(echo "0.${REMAINDER} * ${SYNOD}" | bc | awk -F. '{print $1}')"
+    PHASE="$(echo "0.${REMAINDER} * ${SYNOD}" | bc -l | awk -F. '{print $1}')"
 elif [ "${CALC}" = "dc" ]; then
     REMAINDER="$(echo "10k ${SECDIFF} 86400 / ${SYNOD} / p" | dc | awk -F. '{print $2}')"
     PHASE="$(echo "0.${REMAINDER} ${SYNOD} * p" | dc | awk -F. '{print $1}')"
+fi
+if [ -z "${PHASE}" ]; then
+    PHASE=0
 fi
 
 FULLDATE="$(date --date="@${TARGET}" "+%A %B %e, %Y")"
